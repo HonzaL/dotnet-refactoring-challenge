@@ -1,8 +1,7 @@
-namespace RefactoringChallenge;
+namespace RefactoringChallenge.Dal.Processor;
 
-using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
+using Domain;
 
 public class CustomerOrderProcessor
 {

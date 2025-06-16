@@ -1,7 +1,7 @@
-namespace RefactoringChallenge;
+namespace RefactoringChallenge.Dal.Tests.Processor;
 
-using System.Data.SqlClient;
-using NUnit.Framework;
+using Microsoft.Data.SqlClient;
+using RefactoringChallenge.Dal.Processor;
 
 [TestFixture]
 public class CustomerOrderProcessorTests

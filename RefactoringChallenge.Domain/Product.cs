@@ -1,4 +1,4 @@
-namespace RefactoringChallenge;
+namespace RefactoringChallenge.Domain;
 
 public class Product
 {
