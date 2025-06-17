@@ -32,13 +32,7 @@ public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext)
 
         foreach (var order in pendingOrders)
         {
-            decimal totalAmount = 0;
-            foreach (var item in order.Items)
-            {
-                var subtotal = item.Quantity * item.UnitPrice;
-                totalAmount += subtotal;
-            }
-
+            var totalAmount = order.Items.Sum(orderItem => orderItem.Quantity * orderItem.UnitPrice);
             decimal discountPercent = 0;
 
             if (customer.IsVip)
@@ -46,7 +40,7 @@ public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext)
                 discountPercent += 10;
             }
 
-            int yearsAsCustomer = DateTime.Now.Year - customer.RegistrationDate.Year;
+            var yearsAsCustomer = DateTime.Now.Year - customer.RegistrationDate.Year;
             if (yearsAsCustomer >= 5)
             {
                 discountPercent += 5;
@@ -83,22 +77,14 @@ public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext)
             order.Status = "Processed";
             
             await dbContext.SaveChangesAsync();
+
+            var outOfStockItemsCount = await dbContext.Database
+                .SqlQueryRaw<int?>(
+                    "SELECT COUNT(*) AS Value FROM OrderItems AS oi LEFT JOIN Inventory AS i ON oi.ProductId = i.ProductId WHERE OrderId = {0} AND i.StockQuantity < oi.Quantity",
+                    new SqlParameter("OrderId", order.Id))
+                .SingleOrDefaultAsync();
             
-            
-            var allProductsAvailable = true;
-            foreach (var item in order.Items)
-            {
-                var inventory = await dbContext.Database
-                    .SqlQueryRaw<Inventory?>("SELECT * FROM Inventory WHERE ProductId = {0}",
-                        new SqlParameter("ProductId", item.ProductId)).SingleOrDefaultAsync();
-                if (inventory?.StockQuantity != null && !(inventory.StockQuantity < item.Quantity))
-                {
-                    continue;
-                }
-                
-                allProductsAvailable = false;
-                break;
-            }
+            var allProductsAvailable = outOfStockItemsCount == 0;
 
             string orderLogsMessage;
             if (allProductsAvailable)
