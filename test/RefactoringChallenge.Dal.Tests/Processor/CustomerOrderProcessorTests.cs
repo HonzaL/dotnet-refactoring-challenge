@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using RefactoringChallenge.Dal.Extensions;
+
 namespace RefactoringChallenge.Dal.Tests.Processor;
 
 using Microsoft.Data.SqlClient;
@@ -6,23 +10,30 @@ using RefactoringChallenge.Dal.Processor;
 [TestFixture]
 public class CustomerOrderProcessorTests
 {
+    private readonly RefactoringChallengeDbContext _dbContext;
     
     private readonly string _connectionString = "Server=localhost,1433;Database=refactoringchallenge;User ID=sa;Password=RCPassword1!;";
 
-    
-    [SetUp]
-    public void SetUp()
+    public CustomerOrderProcessorTests()
     {
-        SetupDatabase();
+        var services = new ServiceCollection();
+        services.AddDatabase(_connectionString);
+        _dbContext = services.BuildServiceProvider().GetRequiredService<RefactoringChallengeDbContext>();
+    }
+
+    [SetUp]
+    public Task SetUp()
+    {
+        return SetupDatabase();
     }
     
     [Test]
-    public void ProcessCustomerOrders_ForVipCustomerWithLargeOrder_AppliesCorrectDiscounts()
+    public async Task ProcessCustomerOrders_ForVipCustomerWithLargeOrder_AppliesCorrectDiscounts()
     {
         int customerId = 1; // VIP customer
-        var processor = new CustomerOrderProcessor();
+        var processor = new CustomerOrderProcessor(_dbContext);
 
-        var result = processor.ProcessCustomerOrders(customerId);
+        var result = await processor.ProcessCustomerOrdersAsync(customerId);
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(2));
@@ -44,12 +55,12 @@ public class CustomerOrderProcessorTests
     }
     
     [Test]
-    public void ProcessCustomerOrders_ForRegularCustomerWithSmallOrder_AppliesMinimalDiscount()
+    public async Task ProcessCustomerOrders_ForRegularCustomerWithSmallOrder_AppliesMinimalDiscount()
     {
         int customerId = 2; // Regular customer
-        var processor = new CustomerOrderProcessor();
+        var processor = new CustomerOrderProcessor(_dbContext);
 
-        var result = processor.ProcessCustomerOrders(customerId);
+        var result = await processor.ProcessCustomerOrdersAsync(customerId);
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(1));
@@ -60,12 +71,12 @@ public class CustomerOrderProcessorTests
     }
     
     [Test]
-    public void ProcessCustomerOrders_ForOrderWithUnavailableProducts_SetsOrderOnHold()
+    public async Task ProcessCustomerOrders_ForOrderWithUnavailableProducts_SetsOrderOnHold()
     {
         int customerId = 3; // Customer with order with non-available items
-        var processor = new CustomerOrderProcessor();
+        var processor = new CustomerOrderProcessor(_dbContext);
 
-        var result = processor.ProcessCustomerOrders(customerId);
+        var result = await processor.ProcessCustomerOrdersAsync(customerId);
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(1));
@@ -85,27 +96,23 @@ public class CustomerOrderProcessorTests
         }
     }
     
-    private void SetupDatabase()
+    private async Task SetupDatabase()
     {
-        using (var connection = new SqlConnection(_connectionString))
-        {
-            connection.Open();
+        await ExecuteNonQueryAsync("DELETE FROM OrderLogs");
+        await ExecuteNonQueryAsync("DELETE FROM OrderItems");
+        await ExecuteNonQueryAsync("DELETE FROM Orders");
+        await ExecuteNonQueryAsync("DELETE FROM Inventory");
+        await ExecuteNonQueryAsync("DELETE FROM Products");
+        await ExecuteNonQueryAsync("DELETE FROM Customers");
 
-            ExecuteNonQuery(connection, "DELETE FROM OrderLogs");
-            ExecuteNonQuery(connection, "DELETE FROM OrderItems");
-            ExecuteNonQuery(connection, "DELETE FROM Orders");
-            ExecuteNonQuery(connection, "DELETE FROM Inventory");
-            ExecuteNonQuery(connection, "DELETE FROM Products");
-            ExecuteNonQuery(connection, "DELETE FROM Customers");
-
-            ExecuteNonQuery(connection, @"
+        await ExecuteNonQueryAsync(@"
                 INSERT INTO Customers (Id, Name, Email, IsVip, RegistrationDate) VALUES 
                 (1, 'Joe Doe', 'joe.doe@example.com', 1, '2015-01-01'),
                 (2, 'John Smith', 'john@example.com', 0, '2023-03-15'),
                 (3, 'James Miller', 'miller@example.com', 0, '2024-01-01')
             ");
 
-            ExecuteNonQuery(connection, @"
+        await ExecuteNonQueryAsync(@"
                 INSERT INTO Products (Id, Name, Category, Price) VALUES 
                 (1, 'White', 'T-Shirts', 25000),
                 (2, 'Gray', 'T-Shirts', 800),
@@ -113,7 +120,7 @@ public class CustomerOrderProcessorTests
                 (4, 'Black', 'T-Shirts', 500)
             ");
 
-            ExecuteNonQuery(connection, @"
+        await ExecuteNonQueryAsync(@"
                 INSERT INTO Inventory (ProductId, StockQuantity) VALUES 
                 (1, 100),
                 (2, 200),
@@ -121,7 +128,7 @@ public class CustomerOrderProcessorTests
                 (4, 50)
             ");
 
-            ExecuteNonQuery(connection, @"
+        await ExecuteNonQueryAsync(@"
                 INSERT INTO Orders (Id, CustomerId, OrderDate, TotalAmount, Status) VALUES 
                 (1, 1, '2025-04-10', 0, 'Pending'),
                 (2, 1, '2025-04-12', 0, 'Pending'),
@@ -129,7 +136,7 @@ public class CustomerOrderProcessorTests
                 (4, 3, '2025-04-14', 0, 'Pending')
             ");
 
-            ExecuteNonQuery(connection, @"
+        await ExecuteNonQueryAsync(@"
                 INSERT INTO OrderItems (OrderId, ProductId, Quantity, UnitPrice) VALUES 
                 (1, 1, 10, 25000),
                 (1, 2, 5, 800),
@@ -137,14 +144,10 @@ public class CustomerOrderProcessorTests
                 (3, 2, 1, 800),
                 (4, 3, 10, 5000)
             ");
-        }
     }
     
-    private void ExecuteNonQuery(SqlConnection connection, string commandText)
+    private async Task ExecuteNonQueryAsync(string commandText)
     {
-        using (var command = new SqlCommand(commandText, connection))
-        {
-            command.ExecuteNonQuery();
-        }
+        await _dbContext.Database.ExecuteSqlRawAsync(commandText);
     }
 }
