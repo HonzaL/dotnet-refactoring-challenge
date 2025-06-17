@@ -30,7 +30,7 @@ public class CustomerOrderProcessorTests
     [Test]
     public async Task ProcessCustomerOrders_ForVipCustomerWithLargeOrder_AppliesCorrectDiscounts()
     {
-        int customerId = 1; // VIP customer
+        const int customerId = 1; // VIP customer
         var processor = new CustomerOrderProcessor(_dbContext);
 
         var result = await processor.ProcessCustomerOrdersAsync(customerId);
@@ -43,21 +43,17 @@ public class CustomerOrderProcessorTests
         Assert.That(largeOrder.DiscountPercent, Is.EqualTo(25)); // Max. discount 25%
         Assert.That(largeOrder.Status, Is.EqualTo("Ready"));
 
-        using (var connection = new SqlConnection(_connectionString))
-        {
-            connection.Open();
-            using (var command = new SqlCommand("SELECT StockQuantity FROM Inventory WHERE ProductId = 1", connection))
-            {
-                var newStock = (int)command.ExecuteScalar();
-                Assert.That(newStock, Is.EqualTo(90)); // Origin qty 100, ordered 10
-            }
-        }
+        await using var connection = new SqlConnection(_connectionString);
+        connection.Open();
+        await using var command = new SqlCommand("SELECT StockQuantity FROM Inventory WHERE ProductId = 1", connection);
+        var newStock = (int)command.ExecuteScalar();
+        Assert.That(newStock, Is.EqualTo(90)); // Origin qty 100, ordered 10
     }
     
     [Test]
     public async Task ProcessCustomerOrders_ForRegularCustomerWithSmallOrder_AppliesMinimalDiscount()
     {
-        int customerId = 2; // Regular customer
+        const int customerId = 2; // Regular customer
         var processor = new CustomerOrderProcessor(_dbContext);
 
         var result = await processor.ProcessCustomerOrdersAsync(customerId);
@@ -73,7 +69,7 @@ public class CustomerOrderProcessorTests
     [Test]
     public async Task ProcessCustomerOrders_ForOrderWithUnavailableProducts_SetsOrderOnHold()
     {
-        int customerId = 3; // Customer with order with non-available items
+        const int customerId = 3; // Customer with order with non-available items
         var processor = new CustomerOrderProcessor(_dbContext);
 
         var result = await processor.ProcessCustomerOrdersAsync(customerId);
@@ -84,16 +80,12 @@ public class CustomerOrderProcessorTests
         var onHoldOrder = result[0];
         Assert.That(onHoldOrder.Status, Is.EqualTo("OnHold"));
 
-        using (var connection = new SqlConnection(_connectionString))
-        {
-            connection.Open();
-            using (var command = new SqlCommand("SELECT Message FROM OrderLogs WHERE OrderId = @OrderId ORDER BY LogDate DESC", connection))
-            {
-                command.Parameters.AddWithValue("@OrderId", onHoldOrder.Id);
-                var message = (string)command.ExecuteScalar();
-                Assert.That(message, Is.EqualTo("Order on hold. Some items are not on stock."));
-            }
-        }
+        await using var connection = new SqlConnection(_connectionString);
+        connection.Open();
+        await using var command = new SqlCommand("SELECT Message FROM OrderLogs WHERE OrderId = @OrderId ORDER BY LogDate DESC", connection);
+        command.Parameters.AddWithValue("@OrderId", onHoldOrder.Id);
+        var message = (string?)command.ExecuteScalar();
+        Assert.That(message, Is.EqualTo("Order on hold. Some items are not on stock."));
     }
     
     private async Task SetupDatabase()
