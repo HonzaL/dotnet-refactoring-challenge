@@ -1,24 +1,34 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using RefactoringChallenge.Dal;
 using RefactoringChallenge.Dal.Extensions;
+using RefactoringChallenge.Services.Abstractions.Resolvers;
+using RefactoringChallenge.Services.Extensions;
 
-namespace RefactoringChallenge.Dal.Tests.Processor;
+namespace RefactoringChallenge.Services.Tests.Processor;
 
 using Microsoft.Data.SqlClient;
-using RefactoringChallenge.Dal.Processor;
+using RefactoringChallenge.Services.Processor;
 
 [TestFixture]
 public class CustomerOrderProcessorTests
 {
     private readonly RefactoringChallengeDbContext _dbContext;
+    private readonly CustomerOrderProcessor _processor;
     
     private readonly string _connectionString = "Server=localhost,1433;Database=refactoringchallenge;User ID=sa;Password=RCPassword1!;";
 
     public CustomerOrderProcessorTests()
     {
         var services = new ServiceCollection();
-        services.AddDatabase(_connectionString);
-        _dbContext = services.BuildServiceProvider().GetRequiredService<RefactoringChallengeDbContext>();
+        services
+            .AddDatabase(_connectionString)
+            .AddResolvers()
+            .AddProviders();
+        var serviceProvider = services.BuildServiceProvider();
+        _dbContext = serviceProvider.GetRequiredService<RefactoringChallengeDbContext>();
+        var discountResolver = serviceProvider.GetRequiredService<IDiscountResolver>();
+        _processor = new CustomerOrderProcessor(_dbContext, discountResolver);
     }
 
     [SetUp]
@@ -31,9 +41,8 @@ public class CustomerOrderProcessorTests
     public async Task ProcessCustomerOrders_ForVipCustomerWithLargeOrder_AppliesCorrectDiscounts()
     {
         const int customerId = 1; // VIP customer
-        var processor = new CustomerOrderProcessor(_dbContext);
 
-        var result = await processor.ProcessCustomerOrdersAsync(customerId);
+        var result = await _processor.ProcessCustomerOrdersAsync(customerId);
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(2));
@@ -54,9 +63,8 @@ public class CustomerOrderProcessorTests
     public async Task ProcessCustomerOrders_ForRegularCustomerWithSmallOrder_AppliesMinimalDiscount()
     {
         const int customerId = 2; // Regular customer
-        var processor = new CustomerOrderProcessor(_dbContext);
 
-        var result = await processor.ProcessCustomerOrdersAsync(customerId);
+        var result = await _processor.ProcessCustomerOrdersAsync(customerId);
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(1));
@@ -70,9 +78,8 @@ public class CustomerOrderProcessorTests
     public async Task ProcessCustomerOrders_ForOrderWithUnavailableProducts_SetsOrderOnHold()
     {
         const int customerId = 3; // Customer with order with non-available items
-        var processor = new CustomerOrderProcessor(_dbContext);
 
-        var result = await processor.ProcessCustomerOrdersAsync(customerId);
+        var result = await _processor.ProcessCustomerOrdersAsync(customerId);
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count, Is.EqualTo(1));
@@ -86,6 +93,17 @@ public class CustomerOrderProcessorTests
         command.Parameters.AddWithValue("@OrderId", onHoldOrder.Id);
         var message = (string?)command.ExecuteScalar();
         Assert.That(message, Is.EqualTo("Order on hold. Some items are not on stock."));
+    }
+
+    [Test]
+    public void ProcessCustomerOrders_ShouldThrowException_NonExistentCustomer()
+    {
+        const int customerId = 0; // Non-existent customer
+
+        var xe = Assert.ThrowsAsync<ArgumentException>(async () => await _processor.ProcessCustomerOrdersAsync(customerId));
+        
+        Assert.That(xe!.Message, Is.Not.Null);
+        Assert.That(xe.Message, Does.StartWith("ID zákazníka musí být kladné číslo."));
     }
     
     private async Task SetupDatabase()

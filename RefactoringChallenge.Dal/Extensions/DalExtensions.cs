@@ -5,9 +5,7 @@ namespace RefactoringChallenge.Dal.Extensions;
 
 public static class DalExtensions
 {
-    public static void AddDatabase(this IServiceCollection services, string connectionString)
-    {
+    public static IServiceCollection AddDatabase(this IServiceCollection services, string connectionString) =>
         services.AddDbContext<RefactoringChallengeDbContext>((_, options) => options.UseSqlServer(connectionString),
             optionsLifetime: ServiceLifetime.Singleton);
-    }
 }

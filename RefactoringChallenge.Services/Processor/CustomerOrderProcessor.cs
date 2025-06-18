@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using RefactoringChallenge.Dal;
+using RefactoringChallenge.Services.Abstractions.Resolvers;
 
-namespace RefactoringChallenge.Dal.Processor;
+namespace RefactoringChallenge.Services.Processor;
 
 using Microsoft.Data.SqlClient;
 using Domain;
 
-public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext)
+public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext, IDiscountResolver discountResolver)
 {
     /// <summary>
     /// Process all new orders for specific customer. Update discount and status.
@@ -33,40 +35,7 @@ public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext)
         foreach (var order in pendingOrders)
         {
             var totalAmount = order.Items.Sum(orderItem => orderItem.Quantity * orderItem.UnitPrice);
-            decimal discountPercent = 0;
-
-            if (customer.IsVip)
-            {
-                discountPercent += 10;
-            }
-
-            var yearsAsCustomer = DateTime.Now.Year - customer.RegistrationDate.Year;
-            if (yearsAsCustomer >= 5)
-            {
-                discountPercent += 5;
-            }
-            else if (yearsAsCustomer >= 2)
-            {
-                discountPercent += 2;
-            }
-
-            if (totalAmount > 10000)
-            {
-                discountPercent += 15;
-            }
-            else if (totalAmount > 5000)
-            {
-                discountPercent += 10;
-            }
-            else if (totalAmount > 1000)
-            {
-                discountPercent += 5;
-            }
-
-            if (discountPercent > 25)
-            {
-                discountPercent = 25;
-            }
+            var discountPercent = discountResolver.GetDiscount(customer, totalAmount);
 
             var discountAmount = totalAmount * (discountPercent / 100);
             var finalAmount = totalAmount - discountAmount;

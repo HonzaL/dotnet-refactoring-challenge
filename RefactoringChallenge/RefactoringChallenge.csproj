@@ -20,5 +20,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\RefactoringChallenge.Dal\RefactoringChallenge.Dal.csproj" />
+      <ProjectReference Include="..\RefactoringChallenge.Services\RefactoringChallenge.Services.csproj" />
     </ItemGroup>
 </Project>

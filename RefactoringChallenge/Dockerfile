@@ -8,6 +8,8 @@ WORKDIR /src
 COPY ["RefactoringChallenge/RefactoringChallenge.csproj", "RefactoringChallenge/"]
 COPY ["RefactoringChallenge.Dal/RefactoringChallenge.Dal.csproj", "RefactoringChallenge.Dal/"]
 COPY ["RefactoringChallenge.Domain/RefactoringChallenge.Domain.csproj", "RefactoringChallenge.Domain/"]
+COPY ["RefactoringChallenge.Services.Abstractions/RefactoringChallenge.Services.Abstractions.csproj", "RefactoringChallenge.Services.Abstractions/"]
+COPY ["RefactoringChallenge.Services/RefactoringChallenge.Services.csproj", "RefactoringChallenge.Services/"]
 RUN dotnet restore "RefactoringChallenge/RefactoringChallenge.csproj"
 COPY . .
 WORKDIR "/src/RefactoringChallenge"

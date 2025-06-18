@@ -6,11 +6,13 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <RootNamespace>RefactoringChallenge.Services.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="coverlet.collector" Version="6.0.2"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
+        <PackageReference Include="Moq" Version="4.20.72" />
         <PackageReference Include="NUnit" Version="4.2.2"/>
     </ItemGroup>
 
@@ -19,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\RefactoringChallenge.Dal\RefactoringChallenge.Dal.csproj" />
+      <ProjectReference Include="..\..\RefactoringChallenge.Services\RefactoringChallenge.Services.csproj" />
     </ItemGroup>
 
 </Project>
