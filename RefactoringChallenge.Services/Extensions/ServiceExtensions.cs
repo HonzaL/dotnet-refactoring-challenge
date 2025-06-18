@@ -4,14 +4,22 @@ using RefactoringChallenge.Services.Abstractions.Providers;
 using RefactoringChallenge.Services.Abstractions.Resolvers;
 using RefactoringChallenge.Services.Processor;
 using RefactoringChallenge.Services.Providers;
-using RefactoringChallenge.Services.Resolvers;
 
 namespace RefactoringChallenge.Services.Extensions;
 
 public static class ServiceExtensions
 {
-    private static IServiceCollection AddResolvers(this IServiceCollection services) =>
-        services.AddSingleton<IDiscountResolver, DiscountResolver>();
+    private static IServiceCollection AddResolvers(this IServiceCollection services)
+    {
+        var discountResolverTypes = typeof(ServiceExtensions).Assembly.GetTypes()
+            .Where(t => typeof(IDiscountResolver).IsAssignableFrom(t));
+        foreach (var discountResolverType in discountResolverTypes)
+        {
+            services.AddSingleton(typeof(IDiscountResolver), discountResolverType);
+        }
+        
+        return services;
+    }
     
     private static IServiceCollection AddProviders(this IServiceCollection services) =>
         services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
@@ -22,6 +30,7 @@ public static class ServiceExtensions
             .AddScoped<IOrderService, OrderService>()
             .AddScoped<IInventoryService, InventoryService>()
             .AddScoped<IOrderLogService, OrderLogService>()
+            .AddSingleton<IDiscountService, DiscountService>()
         ;
 
     private static void AddProcessors(this IServiceCollection services) =>

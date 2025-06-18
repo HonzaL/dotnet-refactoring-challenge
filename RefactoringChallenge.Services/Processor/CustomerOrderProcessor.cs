@@ -1,11 +1,10 @@
 using RefactoringChallenge.Domain;
 using RefactoringChallenge.Services.Abstractions;
-using RefactoringChallenge.Services.Abstractions.Resolvers;
 
 namespace RefactoringChallenge.Services.Processor;
 
 public class CustomerOrderProcessor(
-    IDiscountResolver discountResolver,
+    IDiscountService discountService,
     ICustomerService customerService,
     IOrderService orderService, 
     IInventoryService inventoryService,
@@ -33,7 +32,7 @@ public class CustomerOrderProcessor(
         foreach (var order in pendingOrders)
         {
             var totalAmount = order.Items.Sum(orderItem => orderItem.Quantity * orderItem.UnitPrice);
-            var discountPercent = discountResolver.GetDiscount(customer, totalAmount);
+            var discountPercent = discountService.GetDiscount(customer, totalAmount);
 
             var discountAmount = totalAmount * (discountPercent / 100);
             var finalAmount = totalAmount - discountAmount;
