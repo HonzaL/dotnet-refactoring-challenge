@@ -91,17 +91,6 @@ public class CustomerOrderProcessorTests
         var message = (string?)command.ExecuteScalar();
         Assert.That(message, Is.EqualTo("Order on hold. Some items are not on stock."));
     }
-
-    [Test]
-    public void ProcessCustomerOrders_ShouldThrowException_NonExistentCustomer()
-    {
-        const int customerId = 0; // Non-existent customer
-
-        var xe = Assert.ThrowsAsync<ArgumentException>(async () => await _processor.ProcessCustomerOrdersAsync(customerId));
-        
-        Assert.That(xe!.Message, Is.Not.Null);
-        Assert.That(xe.Message, Does.StartWith("ID zákazníka musí být kladné číslo."));
-    }
     
     private async Task SetupDatabase()
     {

@@ -7,6 +7,7 @@ namespace RefactoringChallenge.Services;
 
 public class InventoryService(RefactoringChallengeDbContext context) : IInventoryService
 {
+    /// <inheritdoc />
     public async Task<bool> IsAllOrderItemsInStockAsync(int orderId)
     {
         var outOfStockItemsCount = await context.Database
@@ -17,6 +18,7 @@ public class InventoryService(RefactoringChallengeDbContext context) : IInventor
         return outOfStockItemsCount == 0;
     }
 
+    /// <inheritdoc />
     public Task RemoveOrderItemsFromStockAsync(int orderId) =>
         context.Database.ExecuteSqlRawAsync(
             "UPDATE Inventory SET StockQuantity = StockQuantity - Quantity FROM Inventory INNER JOIN OrderItems ON OrderItems.ProductId = Inventory.ProductId WHERE OrderId = {0}",

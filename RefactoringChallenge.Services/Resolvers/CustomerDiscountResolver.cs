@@ -4,8 +4,12 @@ using RefactoringChallenge.Services.Abstractions.Resolvers;
 
 namespace RefactoringChallenge.Services.Resolvers;
 
+/// <summary>
+/// Customer Discount resolver - Calculates the discount applicable to a given customer
+/// </summary>
 public class CustomerDiscountResolver(IDateTimeProvider dateTimeProvider) : IDiscountResolver
 {
+    /// <inheritdoc />
     public decimal GetDiscount(Customer customer, decimal totalAmount)
     {
         decimal discountPercent = 0;

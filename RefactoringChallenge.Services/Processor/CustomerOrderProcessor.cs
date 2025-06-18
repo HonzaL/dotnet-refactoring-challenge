@@ -1,10 +1,10 @@
 using RefactoringChallenge.Domain;
 using RefactoringChallenge.Services.Abstractions;
+using RefactoringChallenge.Services.Exceptions;
 
 namespace RefactoringChallenge.Services.Processor;
 
 public class CustomerOrderProcessor(
-    IDiscountService discountService,
     ICustomerService customerService,
     IOrderService orderService, 
     IInventoryService inventoryService,
@@ -25,24 +25,13 @@ public class CustomerOrderProcessor(
         var customer = await customerService.FindByIdAsync(customerId);
             
         if (customer == null)
-            throw new Exception($"Zákazník s ID {customerId} nebyl nalezen.");
+            throw new UnknownCustomerException(customerId);
 
         var pendingOrders = await orderService.GetCustomerPendingOrdersAsync(customerId);
 
         foreach (var order in pendingOrders)
         {
-            var totalAmount = order.Items.Sum(orderItem => orderItem.Quantity * orderItem.UnitPrice);
-            var discountPercent = discountService.GetDiscount(customer, totalAmount);
-
-            var discountAmount = totalAmount * (discountPercent / 100);
-            var finalAmount = totalAmount - discountAmount;
-                
-            order.DiscountPercent = discountPercent;
-            order.DiscountAmount = discountAmount;
-            order.TotalAmount = finalAmount;
-            order.Status = "Processed";
-            
-            await orderService.SaveAsync(order);
+            await orderService.Process(order,  customer);
             
             var allProductsAvailable = await inventoryService.IsAllOrderItemsInStockAsync(order.Id);
 

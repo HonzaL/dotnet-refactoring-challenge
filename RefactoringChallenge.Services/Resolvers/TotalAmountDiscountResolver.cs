@@ -3,6 +3,9 @@ using RefactoringChallenge.Services.Abstractions.Resolvers;
 
 namespace RefactoringChallenge.Services.Resolvers;
 
+/// <summary>
+/// Order total amount Discount resolver - Calculates the discount applicable to a given order
+/// </summary>
 public class TotalAmountDiscountResolver : IDiscountResolver
 {
     public decimal GetDiscount(Customer customer, decimal totalAmount)
