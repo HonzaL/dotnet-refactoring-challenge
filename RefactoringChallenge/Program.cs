@@ -7,8 +7,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services
     .AddDatabase(builder.Configuration.GetConnectionString(Constants.ConfigurationKeys.ConnectionString) ??
                  throw new Exception("Missing connection string."))
-    .AddResolvers()
-    .AddProviders();
+    .AddServices();
 
 var host = builder.Build();
 host.Run();

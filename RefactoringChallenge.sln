@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RefactoringChallenge.Servic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RefactoringChallenge.Services.Abstractions", "RefactoringChallenge.Services.Abstractions\RefactoringChallenge.Services.Abstractions.csproj", "{2346E1EB-4779-4E63-BE49-903FC82437E4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RefactoringChallenge.Dal.Abstractions", "RefactoringChallenge.Dal.Abstractions\RefactoringChallenge.Dal.Abstractions.csproj", "{08376BB8-A01A-45ED-BDBA-8E883033E7A8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{2346E1EB-4779-4E63-BE49-903FC82437E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2346E1EB-4779-4E63-BE49-903FC82437E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2346E1EB-4779-4E63-BE49-903FC82437E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08376BB8-A01A-45ED-BDBA-8E883033E7A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08376BB8-A01A-45ED-BDBA-8E883033E7A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08376BB8-A01A-45ED-BDBA-8E883033E7A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08376BB8-A01A-45ED-BDBA-8E883033E7A8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A13834E1-3796-4493-822D-F9FC5F65DA86} = {E5BAD70E-698A-4ADB-B20B-C30D0A6C3857}

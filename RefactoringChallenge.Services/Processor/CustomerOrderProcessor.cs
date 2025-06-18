@@ -1,13 +1,15 @@
-using Microsoft.EntityFrameworkCore;
-using RefactoringChallenge.Dal;
+using RefactoringChallenge.Domain;
+using RefactoringChallenge.Services.Abstractions;
 using RefactoringChallenge.Services.Abstractions.Resolvers;
 
 namespace RefactoringChallenge.Services.Processor;
 
-using Microsoft.Data.SqlClient;
-using Domain;
-
-public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext, IDiscountResolver discountResolver)
+public class CustomerOrderProcessor(
+    IDiscountResolver discountResolver,
+    ICustomerService customerService,
+    IOrderService orderService, 
+    IInventoryService inventoryService,
+    IOrderLogService orderLogService)
 {
     /// <summary>
     /// Process all new orders for specific customer. Update discount and status.
@@ -21,16 +23,12 @@ public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext, IDi
 
         var processedOrders = new List<Order>();
         
-        var customer = await dbContext.Customers.SingleOrDefaultAsync(c => c.Id == customerId);
+        var customer = await customerService.FindByIdAsync(customerId);
             
         if (customer == null)
             throw new Exception($"Zákazník s ID {customerId} nebyl nalezen.");
 
-        var pendingOrders = await dbContext.Orders
-            .Where(o => o.CustomerId == customerId && o.Status == "Pending")
-            .Include(order => order.Items)
-            .ThenInclude(orderItem => orderItem.Product)
-            .ToListAsync();
+        var pendingOrders = await orderService.GetCustomerPendingOrdersAsync(customerId);
 
         foreach (var order in pendingOrders)
         {
@@ -45,26 +43,14 @@ public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext, IDi
             order.TotalAmount = finalAmount;
             order.Status = "Processed";
             
-            await dbContext.SaveChangesAsync();
-
-            var outOfStockItemsCount = await dbContext.Database
-                .SqlQueryRaw<int?>(
-                    "SELECT COUNT(*) AS Value FROM OrderItems AS oi LEFT JOIN Inventory AS i ON oi.ProductId = i.ProductId WHERE OrderId = {0} AND i.StockQuantity < oi.Quantity",
-                    new SqlParameter("OrderId", order.Id))
-                .SingleOrDefaultAsync();
+            await orderService.SaveAsync(order);
             
-            var allProductsAvailable = outOfStockItemsCount == 0;
+            var allProductsAvailable = await inventoryService.IsAllOrderItemsInStockAsync(order.Id);
 
             string orderLogsMessage;
             if (allProductsAvailable)
             {
-                foreach (var item in order.Items)
-                {
-                    await dbContext.Database.ExecuteSqlRawAsync(
-                        "UPDATE Inventory SET StockQuantity = StockQuantity - {0} WHERE ProductId = {1}",
-                        new SqlParameter("Quantity", item.Quantity), new SqlParameter("ProductId", item.ProductId));
-                }
-                    
+                await inventoryService.RemoveOrderItemsFromStockAsync(order.Id);
                 order.Status = "Ready";
                 orderLogsMessage = $"Order completed with {order.DiscountPercent}% discount. Total price: {order.TotalAmount}";
             }
@@ -74,14 +60,10 @@ public class CustomerOrderProcessor(RefactoringChallengeDbContext dbContext, IDi
                 orderLogsMessage = "Order on hold. Some items are not on stock.";
             }
             
-            await dbContext.SaveChangesAsync();
-                
-            await dbContext.Database.ExecuteSqlRawAsync(
-                "INSERT INTO OrderLogs (OrderId, LogDate, Message) VALUES ({0}, {1}, {2})",
-                new SqlParameter("Quantity", order.Id), 
-                new SqlParameter("ProductId", DateTime.Now),
-                new SqlParameter("Message", orderLogsMessage));
-                
+            await orderService.SaveAsync(order);
+            
+            await orderLogService.AddAsync(order.Id, orderLogsMessage);
+
             processedOrders.Add(order);
         }
         

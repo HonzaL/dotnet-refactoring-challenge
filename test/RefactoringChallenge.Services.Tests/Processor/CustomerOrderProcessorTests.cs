@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RefactoringChallenge.Dal;
 using RefactoringChallenge.Dal.Extensions;
-using RefactoringChallenge.Services.Abstractions.Resolvers;
 using RefactoringChallenge.Services.Extensions;
 
 namespace RefactoringChallenge.Services.Tests.Processor;
@@ -23,12 +22,10 @@ public class CustomerOrderProcessorTests
         var services = new ServiceCollection();
         services
             .AddDatabase(_connectionString)
-            .AddResolvers()
-            .AddProviders();
+            .AddServices();
         var serviceProvider = services.BuildServiceProvider();
         _dbContext = serviceProvider.GetRequiredService<RefactoringChallengeDbContext>();
-        var discountResolver = serviceProvider.GetRequiredService<IDiscountResolver>();
-        _processor = new CustomerOrderProcessor(_dbContext, discountResolver);
+        _processor = serviceProvider.GetRequiredService<CustomerOrderProcessor>();
     }
 
     [SetUp]

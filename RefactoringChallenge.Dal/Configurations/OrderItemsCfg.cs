@@ -9,5 +9,6 @@ public class OrderItemsCfg : IEntityTypeConfiguration<OrderItem>
     public void Configure(EntityTypeBuilder<OrderItem> builder)
     {
         builder.ToTable("OrderItems", "dbo");
+        builder.Navigation(x => x.Product).AutoInclude();
     }
 }
